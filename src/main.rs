@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use clap::Parser;
 use sqlx::postgres::PgPool;
+use std::collections::HashMap;
 use std::process::ExitCode;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
@@ -70,6 +71,20 @@ ORDER BY
     rows
 }
 
+fn green_check(stdout: &mut StandardStream) {
+    stdout
+        .set_color(ColorSpec::new().set_fg(Some(Color::Green)))
+        .unwrap();
+    print!("\u{2714}");
+}
+
+fn red_x(stdout: &mut StandardStream) {
+    stdout
+        .set_color(ColorSpec::new().set_fg(Some(Color::Red)))
+        .unwrap();
+    print!("\u{2718}");
+}
+
 #[tokio::main]
 async fn main() -> ExitCode {
     let args = Args::parse();
@@ -92,32 +107,40 @@ async fn main() -> ExitCode {
     });
     let (db_a_rows, db_b_rows) = (task_a.await.unwrap(), task_b.await.unwrap());
 
-    let mut misses = 0;
-    let mut stdout = StandardStream::stdout(ColorChoice::Auto);
+    let mut map_a = HashMap::new();
+    let mut map_b = HashMap::new();
 
-    for (a, b) in db_a_rows.iter().zip(db_b_rows.iter()) {
-        if a._count == b._count && a._id == b._id && a._tmstmp == b._tmstmp {
-            stdout
-                .set_color(ColorSpec::new().set_fg(Some(Color::Green)))
-                .unwrap();
-            print!("\u{2714}");
-        } else {
-            misses += 1;
-            stdout
-                .set_color(ColorSpec::new().set_fg(Some(Color::Red)))
-                .unwrap();
-            print!("\u{2718}");
-        }
-
-        stdout.reset().unwrap();
-        print!(" {}", a._date);
-        println!(
-            " a=({},{},{}) b=({},{},{})",
-            a._count, a._id, a._tmstmp, b._count, b._id, b._tmstmp
-        );
+    for a in db_a_rows.iter() {
+        map_a.insert(a._date, a.clone());
     }
 
-    return match misses == 0 {
+    for b in db_b_rows.iter() {
+        map_b.insert(b._date, b.clone());
+    }
+
+    let mut shared = 0;
+    let mut matches = 0;
+    let mut stdout = StandardStream::stdout(ColorChoice::Auto);
+    for (k1, v1) in map_a.iter() {
+        match map_b.get(k1) {
+            Some(v2) => {
+                shared += 1;
+                if v1._count == v2._count && v1._id == v2._id && v1._tmstmp == v2._tmstmp {
+                    matches += 1;
+                    green_check(&mut stdout);
+                } else {
+                    red_x(&mut stdout);
+                }
+            }
+            None => {
+                red_x(&mut stdout);
+            }
+        }
+    }
+    stdout.reset().unwrap();
+    println!();
+
+    return match db_a_rows.len() == db_b_rows.len() && shared == matches {
         true => ExitCode::SUCCESS,
         false => {
             eprintln!("Databases do not match");
