@@ -41,8 +41,6 @@ SELECT
   SUM(EXTRACT(EPOCH FROM tmstmp)::bigint)::bigint AS _tmstmp
 FROM
   predictions
-WHERE
-  tmstmp < '2024-12-29'::date
 GROUP BY
   _date
 ORDER BY
@@ -76,7 +74,7 @@ async fn main() -> ExitCode {
     });
     let (db_a_rows, db_b_rows) = (task_a.await.unwrap(), task_b.await.unwrap());
 
-    let mut mismatches = 0;
+    let mut misses = 0;
     let mut stdout = StandardStream::stdout(ColorChoice::Auto);
 
     for (a, b) in db_a_rows.iter().zip(db_b_rows.iter()) {
@@ -86,7 +84,7 @@ async fn main() -> ExitCode {
                 .unwrap();
             print!("\u{2714}");
         } else {
-            mismatches += 1;
+            misses += 1;
             stdout
                 .set_color(ColorSpec::new().set_fg(Some(Color::Red)))
                 .unwrap();
@@ -101,7 +99,7 @@ async fn main() -> ExitCode {
         );
     }
 
-    return match mismatches == 0 {
+    return match misses == 0 {
         true => ExitCode::SUCCESS,
         false => {
             eprintln!("Databases do not match");
