@@ -46,23 +46,23 @@ struct Args {
     #[arg(
         long,
         value_name = "DATE",
-        help = "Start date (YYYYMMDD)",
+        help = "First day (YYYYMMDD)",
         required = true
     )]
-    start_date: String,
+    first_day: String,
     #[arg(
         long,
         value_name = "DATE",
-        help = "End date (YYYYMMDD)",
+        help = "Last day (YYYYMMDD)",
         required = true
     )]
-    end_date: String,
+    last_day: String,
 }
 
 async fn run_query(pool: &PgPool, table: &str) -> Vec<DateRow> {
     let args = Args::parse();
-    let start_date = args.start_date.replace(|c: char| !c.is_ascii_digit(), "");
-    let end_date = &args.end_date.replace(|c: char| !c.is_ascii_digit(), "");
+    let first_day = args.first_day.replace(|c: char| !c.is_ascii_digit(), "");
+    let last_day = args.last_day.replace(|c: char| !c.is_ascii_digit(), "");
     let query = format!(
         r#"
 SELECT
@@ -75,13 +75,13 @@ FROM
 WHERE
   tmstmp >= '{}'::date
 AND
-  tmstmp < '{}'::date
+  tmstmp < ('{}'::date + INTERVAL '24 hour')
 GROUP BY
   _date
 ORDER BY
   _date;
 "#,
-        table, start_date, end_date
+        table, first_day, last_day
     );
 
     let mut conn = pool.acquire().await.unwrap();
