@@ -28,11 +28,25 @@ struct Args {
         required = true
     )]
     database_b: String,
+    #[arg(
+        long,
+        value_name = "TABLE",
+        help = "Table in database A",
+        default_value = "predictions"
+    )]
+    table_a: String,
+    #[arg(
+        long,
+        value_name = "TABLE",
+        help = "Table in database B",
+        default_value = "predictions"
+    )]
+    table_b: String,
 }
 
-async fn run_query(pool: &PgPool) -> Vec<DateRow> {
+async fn run_query(pool: &PgPool, table: &str) -> Vec<DateRow> {
     let mut conn = pool.acquire().await.unwrap();
-    let rows = sqlx::query_as::<_, DateRow>(
+    let query = format!(
         r#"
 SELECT
   date_trunc('day', tmstmp) AS _date,
@@ -40,16 +54,18 @@ SELECT
   SUM(id % 10)::bigint AS _id,
   SUM(EXTRACT(EPOCH FROM tmstmp)::bigint)::bigint AS _tmstmp
 FROM
-  predictions
+  {}
 GROUP BY
   _date
 ORDER BY
   _date;
 "#,
-    )
-    .fetch_all(&mut conn)
-    .await
-    .unwrap();
+        table
+    );
+    let rows = sqlx::query_as::<_, DateRow>(&query)
+        .fetch_all(&mut conn)
+        .await
+        .unwrap();
 
     rows
 }
@@ -59,16 +75,18 @@ async fn main() -> ExitCode {
     let args = Args::parse();
     let db_a_conn = args.database_a.clone();
     let db_b_conn = args.database_b.clone();
+    let db_table_a = args.table_a.replace(|c: char| !c.is_ascii_alphabetic(), "");
+    let db_table_b = args.table_b.replace(|c: char| !c.is_ascii_alphabetic(), "");
 
     let task_a = tokio::spawn(async move {
         let db_a_pool = PgPool::connect(&db_a_conn).await.unwrap();
-        let rows = run_query(&db_a_pool).await;
+        let rows = run_query(&db_a_pool, &db_table_a).await;
         println!("Retrieved {} rows from database A", rows.len());
         rows
     });
     let task_b = tokio::spawn(async move {
         let db_b_pool = PgPool::connect(&db_b_conn).await.unwrap();
-        let rows = run_query(&db_b_pool).await;
+        let rows = run_query(&db_b_pool, &db_table_b).await;
         println!("Retrieved {} rows from database B", rows.len());
         rows
     });
