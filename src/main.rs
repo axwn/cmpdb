@@ -43,10 +43,26 @@ struct Args {
         default_value = "predictions"
     )]
     table_b: String,
+    #[arg(
+        long,
+        value_name = "DATE",
+        help = "Start date (YYYYMMDD)",
+        required = true
+    )]
+    start_date: String,
+    #[arg(
+        long,
+        value_name = "DATE",
+        help = "End date (YYYYMMDD)",
+        required = true
+    )]
+    end_date: String,
 }
 
 async fn run_query(pool: &PgPool, table: &str) -> Vec<DateRow> {
-    let mut conn = pool.acquire().await.unwrap();
+    let args = Args::parse();
+    let start_date = args.start_date.replace(|c: char| !c.is_ascii_digit(), "");
+    let end_date = &args.end_date.replace(|c: char| !c.is_ascii_digit(), "");
     let query = format!(
         r#"
 SELECT
@@ -56,13 +72,19 @@ SELECT
   SUM(EXTRACT(EPOCH FROM tmstmp)::bigint)::bigint AS _tmstmp
 FROM
   {}
+WHERE
+  tmstmp >= '{}'::date
+AND
+  tmstmp < '{}'::date
 GROUP BY
   _date
 ORDER BY
   _date;
 "#,
-        table
+        table, start_date, end_date
     );
+
+    let mut conn = pool.acquire().await.unwrap();
     let rows = sqlx::query_as::<_, DateRow>(&query)
         .fetch_all(&mut conn)
         .await
