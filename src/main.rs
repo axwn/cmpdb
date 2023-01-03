@@ -133,11 +133,11 @@ async fn main() -> ExitCode {
     let mut map_b = HashMap::new();
 
     for a in db_a_rows.iter() {
-        map_a.insert(a._date, a.clone());
+        map_a.insert(a._date, a);
     }
 
     for b in db_b_rows.iter() {
-        map_b.insert(b._date, b.clone());
+        map_b.insert(b._date, b);
     }
 
     let mut shared = 0;
