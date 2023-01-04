@@ -162,9 +162,12 @@ async fn main() -> ExitCode {
     println!();
 
     return match db_a_rows.len() == db_b_rows.len() && shared == matches {
-        true => ExitCode::SUCCESS,
+        true => {
+            println!("Databases match!");
+            ExitCode::SUCCESS
+        }
         false => {
-            eprintln!("Databases do not match");
+            eprintln!("Databases do not match.");
             ExitCode::FAILURE
         }
     };
