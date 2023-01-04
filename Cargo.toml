@@ -1,11 +1,12 @@
 [package]
 name = "cmpdb"
-version = "0.5.1"
+version = "0.6.0"
 edition = "2021"
 
 [dependencies]
-chrono = "0.4.23"
 clap = { version = "4.0.32", features = ["derive", "env"] }
-sqlx = { version = "0.6", features = [ "chrono", "runtime-tokio-native-tls", "postgres"] }
+rust_decimal = "1.27"
+sqlx = { version = "0.6", features = ["chrono", "decimal", "postgres", "time", "runtime-tokio-native-tls"] }
 termcolor = "1.1"
+time = "0.3"
 tokio = { version = "1", features = ["full"] }

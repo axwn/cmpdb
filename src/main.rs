@@ -1,4 +1,3 @@
-use chrono::{DateTime, Utc};
 use clap::Parser;
 use sqlx::postgres::PgPool;
 use std::collections::HashMap;
@@ -7,10 +6,10 @@ use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 #[derive(Debug, sqlx::FromRow)]
 struct DateRow {
-    _date: DateTime<Utc>,
-    _count: i64,
-    _id: i64,
-    _tmstmp: i64,
+    _date: time::OffsetDateTime,
+    _count: rust_decimal::Decimal,
+    _id: rust_decimal::Decimal,
+    _tmstmp: rust_decimal::Decimal,
 }
 
 #[derive(Parser, Debug)]
@@ -68,8 +67,8 @@ async fn run_query(pool: &PgPool, table: &str) -> Vec<DateRow> {
 SELECT
   date_trunc('day', tmstmp) AS _date,
   COUNT(*) AS _count,
-  SUM(id % 10)::bigint AS _id,
-  SUM(EXTRACT(EPOCH FROM tmstmp)::bigint)::bigint AS _tmstmp
+  SUM(id) AS _id,
+  SUM(EXTRACT(EPOCH FROM tmstmp)) AS _tmstmp
 FROM
   {}
 WHERE
