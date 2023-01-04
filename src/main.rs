@@ -7,7 +7,7 @@ use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 #[derive(Debug, sqlx::FromRow)]
 struct DateRow {
     _date: time::OffsetDateTime,
-    _count: rust_decimal::Decimal,
+    _count: i64,
     _id: rust_decimal::Decimal,
     _tmstmp: rust_decimal::Decimal,
 }
@@ -67,8 +67,8 @@ async fn run_query(pool: &PgPool, table: &str) -> Vec<DateRow> {
 SELECT
   date_trunc('day', tmstmp) AS _date,
   COUNT(*) AS _count,
-  SUM(id) AS _id,
-  SUM(EXTRACT(EPOCH FROM tmstmp)) AS _tmstmp
+  SUM(id)::NUMERIC AS _id,
+  SUM(EXTRACT(EPOCH FROM tmstmp))::NUMERIC AS _tmstmp
 FROM
   {}
 WHERE
