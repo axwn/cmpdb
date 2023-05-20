@@ -42,26 +42,9 @@ struct Args {
         default_value = "predictions"
     )]
     table_b: String,
-    #[arg(
-        long,
-        value_name = "DATE",
-        help = "First day (YYYYMMDD)",
-        required = true
-    )]
-    first_day: String,
-    #[arg(
-        long,
-        value_name = "DATE",
-        help = "Last day (YYYYMMDD)",
-        required = true
-    )]
-    last_day: String,
 }
 
 async fn run_query(pool: &PgPool, table: &str) -> Vec<DateRow> {
-    let args = Args::parse();
-    let first_day = args.first_day.replace(|c: char| !c.is_ascii_digit(), "");
-    let last_day = args.last_day.replace(|c: char| !c.is_ascii_digit(), "");
     let query = format!(
         r#"
 SELECT
@@ -71,16 +54,12 @@ SELECT
   SUM(EXTRACT(EPOCH FROM tmstmp))::NUMERIC AS _tmstmp
 FROM
   {}
-WHERE
-  tmstmp >= '{}'::date
-AND
-  tmstmp < ('{}'::date + INTERVAL '24 hour')
 GROUP BY
   _date
 ORDER BY
   _date;
 "#,
-        table, first_day, last_day
+        table
     );
 
     let mut conn = pool.acquire().await.unwrap();
