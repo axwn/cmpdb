@@ -1,4 +1,4 @@
-FROM rust:1.66.0 AS builder
+FROM rust:1.69.0 AS builder
 WORKDIR /tmp/
 RUN USER=nobody cargo new --bin cmpdb
 WORKDIR /tmp/cmpdb/
@@ -10,11 +10,7 @@ RUN touch src/main.rs
 RUN cargo build --release --locked
 RUN cargo install --locked --path .
 
-FROM ubuntu:20.04
-ARG DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install --no-install-recommends --yes \
-	libssl1.1 \
-	&& rm -rf /var/lib/apt/lists/*
+FROM redhat/ubi9-minimal
 COPY --from=builder /usr/local/cargo/bin/cmpdb /usr/local/bin/cmpdb
-USER nobody:nogroup
+USER nobody:nobody
 ENTRYPOINT ["cmpdb"]
